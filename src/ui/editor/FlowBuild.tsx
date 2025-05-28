@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {Box, Text} from "@chakra-ui/react";
 import {
   Background,
@@ -7,13 +7,13 @@ import {
   useEdgesState,
   addEdge,
   useReactFlow,
-  ReactFlowProvider,
   // NodeToolbar,
   Position,
   type Node,
   type Edge,
   type Connection,
-  type FinalConnectionState, Handle
+  type FinalConnectionState,
+  Handle
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -22,21 +22,22 @@ const initialNodes = [
     id: '0',
     type: 'input',
     data: { label: 'Node' },
-    position: { x: 0, y: 50 },
+    position: { x: 0, y: 0 },
   },
 ];
 
-const getId = (() => {
-  let id = 1;
-  return () => `${id++}`
-})();
+const getId = ((id = 1) => () => `${id++}`)();
+
 const nodeOrigin: [number, number] = [0.5, 0];
+
+// 'themeNode': null,
+// 'activeNode': null,
+// 'passiveNode': null
 const nodeTypes = {
-  'input': NodeWithToolbar,
+  'input': RootNode,
 };
 
-function NodeWithToolbar({ data } : { data: { label: string}}) {
-  // data.forceToolbarVisible || undefined
+function RootNode({ data } : { data: { label: string}}) {
   return (
     <Box>
       {/*<Handle*/}
@@ -60,12 +61,12 @@ function NodeWithToolbar({ data } : { data: { label: string}}) {
   );
 }
 
-const AddNodeOnEdgeDrop = () => {
+const FlowBuild = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getNodes, setCenter } = useReactFlow();
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -80,7 +81,7 @@ const AddNodeOnEdgeDrop = () => {
       const id = getId();
       const position = screenToFlowPosition({ x: clientX, y: clientY });
 
-      console.log(conState)
+      console.log("FinalConnectionState:", conState);
 
       const newNode: Node = {
         id,
@@ -89,7 +90,7 @@ const AddNodeOnEdgeDrop = () => {
         origin: nodeOrigin,
       };
 
-      console.log(nodes);
+      console.log("nodes:", nodes);
 
       setNodes((nds) => nds.concat(newNode));
       setEdges((eds) =>
@@ -103,6 +104,34 @@ const AddNodeOnEdgeDrop = () => {
     [nodes, screenToFlowPosition, setEdges, setNodes],
   );
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const nodes = getNodes();
+      const root = nodes.find((n) => n.id === '0');
+
+      // centering correct main root node
+      if (root) {
+        const x = root.position.x;
+        const y = root.position.y + 250;
+
+        setCenter(x, y, { zoom: 1.5, duration: 800 });
+      }
+    }, 100);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // useEffect(() => {
+  //   const timeout = setTimeout(() => {
+  //     const currentNodes = getNodes();
+  //     if (currentNodes.length > 0) {
+  //       fitView({ nodes: [currentNodes[0]], padding: 1.8, duration: 800 });
+  //     }
+  //   }, 100);
+  //
+  //   return () => clearTimeout(timeout);
+  // }, []);
+
   return (
     <Box ref={reactFlowWrapper}  h="100vh">
       <ReactFlow
@@ -114,7 +143,7 @@ const AddNodeOnEdgeDrop = () => {
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
         fitView
-        fitViewOptions={{ padding: 2 }}
+        fitViewOptions={{ padding: 2.5 }}
         nodeOrigin={nodeOrigin}
       >
         <Background />
@@ -123,10 +152,4 @@ const AddNodeOnEdgeDrop = () => {
   );
 };
 
-const FlowEditor = () => (
-  <ReactFlowProvider>
-    <AddNodeOnEdgeDrop />
-  </ReactFlowProvider>
-);
-
-export default FlowEditor;
+export default FlowBuild;

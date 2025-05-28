@@ -19,7 +19,12 @@ export const loadMemoryAtom = atom(null, async (_, set) => {
       memoryStore.getItem<[NodeId, MemoryContext][]>('contexts'),
     ]);
 
-    console.log(`nodes: ${nodes?.length} | edges ${edges?.length} | contexts ${contexts?.length}`)
+    if(nodes && edges && contexts) {
+      console.log(
+        `nodes: ${nodes.length} | edges ${edges.length} | contexts ${contexts.length}`
+      );
+    }
+
 
     set(nodeMapAtom, new Map(nodes ?? []));
     set(edgeMapAtom, new Map(edges ?? []));
